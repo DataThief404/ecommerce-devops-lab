@@ -1,0 +1,68 @@
+---
+- name: Deploy E-Commerce App
+  hosts: web
+  become: yes
+
+  tasks:
+
+    - name: Update system packages
+      dnf:
+        name: "*"
+        state: latest
+
+    - name: Install Docker
+      dnf:
+        name: docker
+        state: present
+
+    - name: Start Docker
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Install Docker Compose
+      get_url:
+        url: https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64
+        dest: /usr/local/bin/docker-compose
+        mode: "0755"
+
+    - name: Create app directory
+      file:
+        path: /app
+        state: directory
+        owner: ec2-user
+
+    - name: Copy docker-compose
+      copy:
+        src: docker-compose.yml
+        dest: /app/docker-compose.yml
+
+    - name: Copy nginx config
+      copy:
+        src: nginx.conf
+        dest: /app/nginx.conf
+
+    - name: Copy server folder
+      copy:
+        src: server/
+        dest: /app/server/
+
+    - name: Stop old containers (safe cleanup)
+      shell: docker-compose -f /app/docker-compose.yml down || true
+
+    - name: Remove old containers
+      shell: docker system prune -af || true
+
+    - name: Start application
+      shell: docker-compose -f /app/docker-compose.yml up -d
+      args:
+        chdir: /app
+
+    - name: Show containers status
+      shell: docker ps
+      register: docker_status
+
+    - name: Debug containers
+      debug:
+        msg: "{{ docker_status.stdout }}"
