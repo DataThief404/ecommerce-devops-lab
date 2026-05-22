@@ -8,9 +8,9 @@ services:
 
   app:
     image: node:18-alpine
-    working_dir: /app
+    working_dir: /app/server
     volumes:
-      - /app/server:/app
+      - /app/server:/app/server
     command: sh -c "npm install && node server.js"
     environment:
       - MONGO_URL=mongodb://mongodb:27017/shop
